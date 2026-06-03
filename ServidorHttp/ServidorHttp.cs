@@ -9,7 +9,8 @@ namespace ServidorHttp
         private TcpListener Controlador {  get; set; }
         private int Porta { get; set; }
         private int QtdeRequest { get; set; }
-        public string HtmlExemplo { get; set; } 
+        public string HtmlExemplo { get; set; }
+        private SortedList<string, string> TiposMime {  get; set; }
 
         public ServidorHttp(int porta = 8080)
         {
@@ -117,6 +118,23 @@ namespace ServidorHttp
                 return File.ReadAllBytes(caminhoArquivo);
             }
             else return new byte[0];
+        }
+    
+        private void PopularTiposMime()
+        {
+            TiposMime = new SortedList<string, string>();
+            TiposMime.Add(".html", "text/html;charset=utf-8");
+            TiposMime.Add(".htm", "text/html;charset=utf-8");
+            TiposMime.Add(".css", "text/css");
+            TiposMime.Add(".js", "text/javascript");
+            TiposMime.Add(".png", "image/png");
+            TiposMime.Add(".jpg", "image/jpeg");
+            TiposMime.Add(".gif", "image/gif");
+            TiposMime.Add(".svg", "image/svg+xml");
+            TiposMime.Add(".wep", "image/webp");
+            TiposMime.Add(".ico", "image/ico");
+            TiposMime.Add(".woff", "font/woff");
+            TiposMime.Add(".woff2", "font/woff2");
         }
     }
 }
