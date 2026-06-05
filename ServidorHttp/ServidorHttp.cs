@@ -11,12 +11,14 @@ namespace ServidorHttp
         private int QtdeRequest { get; set; }
         public string HtmlExemplo { get; set; }
         private SortedList<string, string> TiposMime {  get; set; }
+        private SortedList<string, string> DiretoriosHosts { get; set; }
 
         public ServidorHttp(int porta = 8080)
         {
             Porta = porta;
             CriarHtmlExemplo();
             PopularTiposMime();
+            PopularDiretorioHosts();
             try
             {
                 Controlador = new TcpListener(IPAddress.Parse("127.0.0.1"), Porta);
@@ -61,18 +63,21 @@ namespace ServidorHttp
                     string metodoHttp = linhas[0].Substring(0, iPrimeiroEspaco);
                     string recursoBuscado = linhas[0].Substring(
                         iPrimeiroEspaco + 1, iSegundoEspaco - iPrimeiroEspaco - 1);
+                    if (recursoBuscado == "/") recursoBuscado = "/index.html";
+                    recursoBuscado = recursoBuscado.Split("?")[0];
                     string versaoHttp = linhas[0].Substring(iSegundoEspaco + 1);
                     iPrimeiroEspaco = linhas[1].IndexOf(' ');
                     string nomeHost = linhas[1].Substring(iPrimeiroEspaco + 1);
 
                     byte[] bytesCabecalho = null;
                     byte[] bytesConteudo = null;
-                    FileInfo fiArquivo = new FileInfo(ObterCaminhoFisicoArquivo(recursoBuscado));
+                    FileInfo fiArquivo = new FileInfo(ObterCaminhoFisicoArquivo(nomeHost, recursoBuscado));
                     if (fiArquivo.Exists)
                     {
                         if (TiposMime.ContainsKey(fiArquivo.Extension.ToLower()))
                         {
-                            bytesConteudo = File.ReadAllBytes(fiArquivo.FullName);
+                            //bytesConteudo = File.ReadAllBytes(fiArquivo.FullName);
+                            bytesConteudo = GerarHTMLDinamico(fiArquivo.FullName);
                             string tipoMime = TiposMime[fiArquivo.Extension.ToLower()];
                             bytesCabecalho = GerarCabecalho(versaoHttp, tipoMime, "200",
                              bytesConteudo.Length);
@@ -142,10 +147,34 @@ namespace ServidorHttp
             TiposMime.Add(".woff2", "font/woff2");
         }
     
-        public string ObterCaminhoFisicoArquivo(string arquivo)
+        private void PopularDiretorioHosts()
         {
-            string caminhoArquivo = "C:\\Projetos\\.Net\\ServidorHttp\\ServidorHttp\\www" + arquivo.Replace("/", "\\");
+            DiretoriosHosts = new SortedList<string, string>();
+            DiretoriosHosts.Add("localhost", "C:\\Projetos\\.Net\\ServidorHttp\\ServidorHttp\\www\\localhost");
+            DiretoriosHosts.Add("silvio.com", "C:\\Projetos\\.Net\\ServidorHttp\\ServidorHttp\\www\\silvio.com");
+        }
+
+        public string ObterCaminhoFisicoArquivo(string host, string arquivo)
+        {
+            string diretorio = DiretoriosHosts[host.Split(":")[0]];
+            string caminhoArquivo = diretorio + arquivo.Replace("/", "\\");
             return caminhoArquivo;
+        }
+
+        public byte[] GerarHTMLDinamico(string caminhoArquivo)
+        {
+            string coringa = "{{HtmlGerado}}";
+            string htmlModelo = File.ReadAllText(caminhoArquivo);
+            StringBuilder htmlGerado = new StringBuilder();
+            htmlGerado.AppendLine("<ul>");
+            foreach (var tipo in TiposMime.Keys)
+            {
+                htmlGerado.Append($"<li>Arquivos com extensão {tipo}</li>");
+            }
+            htmlGerado.AppendLine("</ul>");
+            string textoHtmlGerado = htmlModelo.Replace(coringa, htmlGerado.ToString());
+
+            return Encoding.UTF8.GetBytes(textoHtmlGerado, 0, textoHtmlGerado.Length);
         }
     }
 }
